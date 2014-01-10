@@ -9,6 +9,13 @@ class SocialSchedulerController < Sinatra::Application
   APP_ID, APP_SECRET, REDIRECT, PASSWORD = 
     File.readlines("#{settings.root}/app_data.txt").map(&:chomp)
 
+  # set up logging
+  configure do
+    file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
+    file.sync = true
+    use Rack::CommonLogger, file
+  end
+
   before do
     content_type :json
   end
