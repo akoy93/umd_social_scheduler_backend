@@ -1,3 +1,4 @@
-/backend/lib/fb_app_info.txt
+/backend/lib/app_data.txt
 /design.txt
 schedules/
+*db
