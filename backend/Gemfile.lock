@@ -86,6 +86,7 @@ PLATFORMS
 
 DEPENDENCIES
   data_mapper
+  dm-serializer
   dm-sqlite-adapter
   json
   koala

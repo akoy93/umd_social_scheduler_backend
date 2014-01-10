@@ -6,24 +6,19 @@ helpers do
     params[:captures].each { |capture| error if capture.empty? }
   end
 
-  def error
-    return { success: false }.to_json
+  def error(data = {})
+    return { success: false, data: data }.to_json
   end
 
   def success(data = {})
     return { success: true, data: data }.to_json
   end
 
-  def classmates(session, params)
-    courses = Course.all(course: params[:course].upcase)
-    courses = courses.all(section: params[:section].upcase) unless params[:section].nil? or params[:section].empty?
+  def jpg_path(term, id)
+    File.expand_path("#{term}/#{id}.jpg", settings.schedules)
   end
 
-  def jpg_path(id)
-    File.expand_path("#{id}.jpg", settings.schedules)
-  end
-
-  def html_path(id)
-    File.expand_path("#{id}.html", settings.schedules)
+  def html_path(term, id)
+    File.expand_path("#{term}/#{id}.html", settings.schedules)
   end
 end
