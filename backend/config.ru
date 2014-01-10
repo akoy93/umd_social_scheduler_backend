@@ -3,7 +3,8 @@ require 'bundler'
 
 Bundler.require
 
-require './lib/backend'
+require './lib/app'
 require './lib/db'
 require './lib/helpers'
-run SocialSchedulerBackend
+
+run SocialSchedulerController
