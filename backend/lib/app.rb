@@ -1,13 +1,11 @@
 require 'set'
 
 class SocialSchedulerController < Sinatra::Application
-  # store session data for 1 day
-  use Rack::Session::Pool, :expire_after => 86400
-
   # store directory paths
   set :root, File.expand_path('../../', __FILE__)
   set :schedules, File.expand_path("schedules", settings.root)
 
+  # read application data
   APP_ID, APP_SECRET, REDIRECT, PASSWORD = File.readlines("#{settings.root}/app_data.txt").map(&:chomp)
 
   before do
