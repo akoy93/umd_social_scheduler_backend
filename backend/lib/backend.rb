@@ -1,32 +1,13 @@
 require 'set'
 
 class SocialSchedulerBackend < Sinatra::Application
-  DataMapper.setup(:default, ENV['DATABASE_URL]'] || "sqlite3://#{Dir.pwd}/dev.db")
-
-  class Course
-    include DataMapper::Resource
-
-    property :id, Serial
-    property :fbid, Integer
-    property :course, String
-    property :section, String
-
-    validates_presence_of :fbid
-    validates_presence_of :course
-    validates_presence_of :section
-    validates_length_of :course, :minimum => 7, :maximum => 8
-    validates_length_of :section, :is => 4
-  end
-
-  DataMapper.finalize.auto_upgrade!
-
-  # for storing session data
+  # store session data for 1 day
   use Rack::Session::Pool, :expire_after => 86400
 
-  # root path
-  set :root, File.expand_path('../', __FILE__)
+  # store directory paths
+  set :root, File.expand_path('../../', __FILE__)
+  set :schedules, File.expand_path("schedules", settings.root)
 
-  # facebook application info
   APP_ID, APP_SECRET, REDIRECT, PASSWORD = File.readlines("#{settings.root}/app_data.txt").map(&:chomp)
 
   before do
@@ -46,57 +27,56 @@ class SocialSchedulerBackend < Sinatra::Application
   # facebook logout
   get '/logout' do
     session.clear
+    success
   end
 
-  # login callback. stores user data in a session hash
+  # login callback. stores user data in session hash.
   get '/callback' do
-    error if session.nil? or session[:oauth].nil?
+    error_check
 
-    # get user's facebook graph
+    # get user's facebook graph object
     session[:access_token] = session[:oauth].get_access_token(params[:code])
     session[:graph] = Koala::Facebook::API.new(session[:access_token])
     
-    # oauth no longer needed
+    # access_token and oauth no longer needed
+    session[:access_token] = nil
     session[:oauth] = nil
 
     # user information
     profile = session[:graph].get_object("me")
     session[:fbid] = profile["id"]
 
-    # store user's friends in session
+    # store user's friends in session hash
     session[:friends] = session[:graph].get_connections("me", "friends").map { |friend| friend["id"] }.to_set
 
-    { success: true, id: session[:fbid], name: profile["name"] }.to_json
+    success({ fbid: session[:fbid], name: profile["name"] })
   end
 
   # accepts html for user's schedule and renders an image
   get '/render_schedule/:html' do
-    error if session.nil? or session[:fbid].nil? or params[:html].empty?
-
-    schedules_path = File.expand_path("../schedules", settings.root)
-    file_name = "#{session[:fbid]}"
-    file_path = schedules_path + "/" + file_name
+    error_check params
 
     # generate html file
-    File.open("#{file_path}.html", "w+") do |f|
+    File.open(html_path(session[:fbid]), "w+") do |f|
       f.puts "<html><body><center>"
       f.puts params[:html]
       f.puts "<h2>www.umdsocialscheduler.com</h2></center></body></html>"
     end
 
     # run shell commands to create schedule image
-    status = system("#{schedules_path}/../wkhtmltoimage --crop-x 150 --crop-w 724 #{file_path}.html #{file_path}.jpg")
-    status &&= system("rm #{file_path}.html")
+    status = system("#{settings.root}/wkhtmltoimage --crop-x 150 --crop-w 724 #{html_path session[:fbid]} #{jpg_path session[:fbid]}")
+    status &&= system("rm #{html_path session[:fbid]}")
 
     error unless status
-    session[:schedule_img] = "#{file_path}.jpg"
+    session[:schedule_img] = jpg_path session[:fbid]
 
     success
   end
 
   # posts a user's schedule to facebook
   get '/post_schedule' do
-    error if session.nil? or session[:graph].nil? or session[:schedule_img].nil?
+    error_check
+    error if session[:schedule_img].nil?
 
     # post schedule image to facebook
     session[:graph].put_picture(session[:schedule_img], 
@@ -107,11 +87,12 @@ class SocialSchedulerBackend < Sinatra::Application
 
   # saves user's schedule information to a database. expects (COURSE,SECTION)|(COURSE,SECTION)
   post '/add_schedule' do
-    error if session.nil? or session[:fbid].nil? or params[:schedule].empty?
+    error_check params
 
     # remove existing course entries
     Course.all(:fbid => session[:fbid]).each { |course_entry| course_entry.destroy! }
 
+    # parse request parameters and add new course entries
     params[:schedule].split('|').each do |course_data|
       course, section = course_data.split(',')
       course_entry = Course.new({ fbid: session[:fbid].to_i, course: course.upcase, section: section.upcase })
@@ -122,25 +103,20 @@ class SocialSchedulerBackend < Sinatra::Application
   end
 
   get '/schedules' do
-    { count: Course.count }.to_json
+    error_check
+    success({ count: Course.count })
   end
 
   get '/friends/:course/?:section?' do
-    error if session.nil? or session[:friends].nil? or params[:course].empty?
-
-    courses = Course.all(course: params[:course].upcase)
-    courses = courses.all(section: params[:section].upcase) unless params[:section].nil? or params[:section].empty?
-
+    error_check params
+    courses = classmates(session, params)
     # return json of friend ids in requested course/section
-    courses.map(&:fbid).select { |classmate| session[:friends].include? classmate }.shuffle.to_json
+    success courses.map(&:fbid).select { |classmate| session[:friends].include? classmate }.shuffle
   end
 
   get '/friendsoffriends/:course/?:section?' do
-    error if session.nil? or session[:graph].nil? or session[:friends].nil? or params[:course].empty?
-
-    courses = Course.all(course: params[:course].upcase)
-    courses = courses.all(section: params[:section].upcase) unless params[:section].nil? or params[:section].empty?
-
+    error_check params
+    courses = classmates(session, params)
     mutual_counts = {}
 
     courses.map(&:fbid).each do |classmate| 
@@ -148,21 +124,22 @@ class SocialSchedulerBackend < Sinatra::Application
     end
 
     # returns json of friend of friend ids in requested course/section
-    mutual_counts.reject! { |classmate, v| session[:friends].include? classmate }
-      .sort_by { |k, mutuals| mutuals }.reverse.to_json
+    success mutual_counts.reject! { |classmate, v| session[:friends].include? classmate }
+      .sort_by { |k, mutuals| mutuals }.reverse
+  end
+
+  get '/schedule/:user_id' do
+    error_check params
+    file_path = jpg_path params[:user_id]
+
+    unless File.exists?(file_path) && (params[:user_id] == session[:fbid] || session[:friends].include?(params[:user_id]))
+      error
+    end
+
+    send_file file_path, type: :jpg
   end
 
   error do
     error
-  end
-
-  helpers do
-    def error
-      return { success: false }.to_json
-    end
-
-    def success
-      return { success: true }.to_json
-    end
   end
 end
