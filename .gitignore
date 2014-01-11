@@ -1,7 +1,6 @@
 /backend/app_data.txt
 /design.txt
-schedules/*
+/schedules/*
 scratch/
-log/*
 *.db
 *.log

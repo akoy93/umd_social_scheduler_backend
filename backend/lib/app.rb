@@ -46,10 +46,11 @@ class SocialSchedulerController < Sinatra::Application
   get '/callback' do
     return error unless error_check
 
-    # get user's facebook graph object
+    # get user's facebook graph object and api instance
     session[:access_token] = session[:oauth].get_access_token(params[:code])
     session[:graph] = Koala::Facebook::API.new(session[:access_token])
-    
+    session[:api] = Koala::Facebook::API.new(session[:access_token])
+
     # access_token and oauth no longer needed
     session[:access_token] = nil
     session[:oauth] = nil
@@ -137,14 +138,21 @@ class SocialSchedulerController < Sinatra::Application
 
     success [] if classmates.nil?
 
-    classmates.map(&:fbid).each do |classmate| 
-      mutual_counts[classmate] = session[:graph]
-        .get_connections("me", "mutualfriends/#{classmate}").size
-    end
+    # filter classmates to potential friends of friends, slice into chunks of 50, invoke
+    # facebook batch requests to get mutual friends quickly, merge results into a hash
+    # - chained methods to get around readonly restriction of database
+    # - slice classmates into chunks of 50 to comply with facebook batch limits
+    classmates.map(&:fbid).reject { |c| c == session[:fbid] or session[:friends].include? c }
+      .each_slice(50) do |classmate_slice|
+        mutuals = session[:api].batch do |batch_api|
+          classmate_slice.each { |c| batch_api.get_connections("me", "mutualfriends/#{c}") }
+        end
+        counts = Hash[classmate_slice.zip mutuals.map(&:size)]
+        mutual_counts.merge! counts
+      end
 
-    # returns json of friend of friend ids in requested course/section
-    success mutual_counts.reject! { |classmate, v| session[:friends].include? classmate }
-      .sort_by { |k, mutuals| mutuals }.reverse
+    # returns json of friend of friend ids in requested course/section sorted by num mutual friends
+    success mutual_counts.sort_by { |k, mutuals| mutuals }.reverse
   end
 
   # get an image of a user's schedule (must be friends)

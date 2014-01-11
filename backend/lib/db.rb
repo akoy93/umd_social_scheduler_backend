@@ -40,7 +40,7 @@ class Term
     term = Term.get(term_code.to_s.upcase)
 
     classmates = term.courseEntries.all(course: course.to_s.upcase)
-    classmates = courses.all(section: section.to_s.upcase) unless section.nil? or section.empty?
+    classmates = classmates.all(section: section.to_s.upcase) unless section.nil? or section.empty?
     classmates
   end
 end
