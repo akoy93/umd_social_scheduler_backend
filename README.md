@@ -3,7 +3,6 @@ UMD Social Scheduler
 
 UMD Social Scheduler is a browser extension for Google Chrome that displays social information on top of the University of Maryland scheduling website at http://www.sis.umd.edu. 
 
-
 API (backend)
 -------------
 Refer to backend/lib/app.rb. UMD Social Scheduler's backend is written in Ruby using the Sinatra gem.
@@ -31,3 +30,7 @@ Refer to backend/lib/app.rb. UMD Social Scheduler's backend is written in Ruby u
   
 ####Get a Friend's Schedule Image
   Submit a GET request to /schedule/"term"/"facebook id" i.e. /schedule/201401/2359273392. This call will return a jpeg image of the user corresponding to the specified Facebook ID only if that user is friends with the current user.
+  
+Contact
+-------
+If you have any ideas for new features, if you would like to use my code, or if you would like to collaborate, contact me at albertkoy(at)gmail(dot)com.
