@@ -39,8 +39,9 @@ class Term
   def self.classmates(term_code, course, section)
     term = Term.get(term_code.to_s.upcase)
 
-    courses = Term.courseEntries.all(course: course.to_s.upcase)
-    courses.all(section: section.to_s.upcase) unless section.nil? or section.empty?
+    classmates = term.courseEntries.all(course: course.to_s.upcase)
+    classmates = courses.all(section: section.to_s.upcase) unless section.nil? or section.empty?
+    classmates
   end
 end
 

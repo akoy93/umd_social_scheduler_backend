@@ -3,4 +3,5 @@
 schedules/*
 scratch/
 log/*
-*db
+*.db
+*.log

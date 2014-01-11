@@ -1,6 +1,11 @@
 require 'set'
 
 class SocialSchedulerController < Sinatra::Application
+  # diable rack protection while in development
+  configure :development do
+    disable :protection
+  end
+
   # store directory paths
   set :root, File.expand_path('../../', __FILE__)
   set :schedules, File.expand_path("schedules", settings.root)
@@ -39,7 +44,7 @@ class SocialSchedulerController < Sinatra::Application
 
   # login callback. stores user data in session hash.
   get '/callback' do
-    error_check
+    return error unless error_check
 
     # get user's facebook graph object
     session[:access_token] = session[:oauth].get_access_token(params[:code])
@@ -62,7 +67,8 @@ class SocialSchedulerController < Sinatra::Application
 
   # accepts html for user's schedule and renders an image
   post '/render_schedule' do
-    error_check params
+    return error unless error_check params
+    return error if params[:html].size > 10000
 
     # generate html file
     File.open(html_path(params[:term], session[:fbid]), "w+") do |f|
@@ -76,7 +82,7 @@ class SocialSchedulerController < Sinatra::Application
         " #{html_path(params[:term], session[:fbid])} #{jpg_path(params[:term], session[:fbid])}")
     status &&= system("rm #{html_path(params[:term], session[:fbid])}")
 
-    error unless status
+    return error unless status
     session[:schedule_img] = jpg_path(params[:term], session[:fbid])
 
     success
@@ -84,8 +90,8 @@ class SocialSchedulerController < Sinatra::Application
 
   # posts a user's schedule to facebook
   get '/post_schedule' do
-    error_check
-    error if session[:schedule_img].nil?
+    return error unless error_check params
+    return error if session[:schedule_img].nil?
 
     # post schedule image to facebook
     session[:graph].put_picture(session[:schedule_img], 
@@ -97,7 +103,10 @@ class SocialSchedulerController < Sinatra::Application
 
   # saves user's schedule information to a database. expects COURSE,SEC|COURSE,SEC.
   post '/add_schedule' do
-    error_check params
+    return error unless error_check params
+
+    # too many classes
+    return error if params[:schedule].split('|').size > 15
 
     # remove existing course entries
     Term.delete_user(params[:term], session[:fbid])
@@ -105,7 +114,7 @@ class SocialSchedulerController < Sinatra::Application
     # parse request parameters and add new course entries
     params[:schedule].split('|').each do |course_data|
       course_entry = CourseEntry.create_entry(session[:fbid], *course_data.split(','))
-      error unless Term.add(params[:term], course_entry)
+      return error unless Term.add(params[:term], course_entry)
     end
 
     success
@@ -113,19 +122,22 @@ class SocialSchedulerController < Sinatra::Application
 
   # get friends in a class
   get '/friends/:term/:course/?:section?' do
-    error_check params
-    courses = Term.classmates(params[:term], params[:course], params[:section])
+    return error unless error_check params
+    classmates = Term.classmates(params[:term], params[:course], params[:section])
     # return json of friend ids in requested course/section
-    success courses.map(&:fbid).select { |classmate| session[:friends].include? classmate }.shuffle
+    success [] if classmates.nil?
+    success classmates.map(&:fbid).select { |classmate| session[:friends].include? classmate }.shuffle
   end
 
   # get friends of friends in a class
   get '/friendsoffriends/:term/:course/?:section?' do
-    error_check params
-    courses = Term.classmates(params[:term], params[:course], params[:section])
+    return error unless error_check params
+    classmates = Term.classmates(params[:term], params[:course], params[:section])
     mutual_counts = {}
 
-    courses.map(&:fbid).each do |classmate| 
+    success [] if classmates.nil?
+
+    classmates.map(&:fbid).each do |classmate| 
       mutual_counts[classmate] = session[:graph]
         .get_connections("me", "mutualfriends/#{classmate}").size
     end
@@ -137,12 +149,12 @@ class SocialSchedulerController < Sinatra::Application
 
   # get an image of a user's schedule (must be friends)
   get '/schedule/:term/:user_id' do
-    error_check params
+    return error unless error_check params
     file_path = jpg_path(params[:term], params[:user_id])
 
     unless File.exists?(file_path) && 
       (params[:user_id] == session[:fbid] || session[:friends].include?(params[:user_id]))
-      error
+      return error
     end
 
     send_file file_path, type: :jpg
@@ -156,7 +168,7 @@ class SocialSchedulerController < Sinatra::Application
   end
 
   # get all course entries for a term
-  get "/#{PASSWORD}/count/:term" do
+  get "/#{PASSWORD}/courses/:term" do
     Term.get(params[:term]).courseEntries.to_json
   end
 
@@ -179,6 +191,6 @@ class SocialSchedulerController < Sinatra::Application
   ########### Error Handling ############
 
   error do
-    error
+    return error
   end
 end
