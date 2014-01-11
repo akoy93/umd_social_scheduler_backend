@@ -127,8 +127,8 @@ class SocialSchedulerController < Sinatra::Application
     classmates = Term.classmates(params[:term], params[:course], params[:section])
     # return json of friend ids in requested course/section
     success [] if classmates.nil?
-    success classmates.map { |c| { id: c.fbid, section: c.section } }
-      .select { |c| session[:friends].include? c[:id] }.shuffle
+    success classmates.map { |c| { fbid: c.fbid, section: c.section } }
+      .select { |c| session[:friends].include? c[:fbid] }.shuffle
   end
 
   # get friends of friends in a class
@@ -143,11 +143,13 @@ class SocialSchedulerController < Sinatra::Application
     # facebook batch requests to get mutual friends quickly, merge results into each hash
     # - chained methods to get around readonly restriction of database
     # - slice classmates into chunks of 50 to comply with facebook batch limits
-    classmates.map { |c| { id: c.fbid, section: c.section } }
-      .reject { |c| c[:id] == session[:fbid] or session[:friends].include? c[:id] }
+    classmates.map { |c| { fbid: c.fbid, section: c.section } }
+      .reject { |c| c[:fbid] == session[:fbid] or session[:friends].include? c[:fbid] }
         .each_slice(50) do |classmate_slice|
           mutuals = session[:api].batch do |batch_api|
-            classmate_slice.each { |c| batch_api.get_connections("me", "mutualfriends/#{c[:id]}") }
+            classmate_slice.each do |c| 
+              batch_api.get_connections("me", "mutualfriends/#{c[:fbid]}")
+            end
           end
           mutuals.map!(&:size)
           mutual_counts += classmate_slice.each_with_index
