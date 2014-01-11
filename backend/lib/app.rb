@@ -127,32 +127,35 @@ class SocialSchedulerController < Sinatra::Application
     classmates = Term.classmates(params[:term], params[:course], params[:section])
     # return json of friend ids in requested course/section
     success [] if classmates.nil?
-    success classmates.map(&:fbid).select { |classmate| session[:friends].include? classmate }.shuffle
+    success classmates.map { |c| { id: c.fbid, section: c.section } }
+      .select { |c| session[:friends].include? c[:id] }.shuffle
   end
 
   # get friends of friends in a class
   get '/friendsoffriends/:term/:course/?:section?' do
     return error unless error_check params
     classmates = Term.classmates(params[:term], params[:course], params[:section])
-    mutual_counts = {}
+    mutual_counts = []
 
     success [] if classmates.nil?
 
     # filter classmates to potential friends of friends, slice into chunks of 50, invoke
-    # facebook batch requests to get mutual friends quickly, merge results into a hash
+    # facebook batch requests to get mutual friends quickly, merge results into each hash
     # - chained methods to get around readonly restriction of database
     # - slice classmates into chunks of 50 to comply with facebook batch limits
-    classmates.map(&:fbid).reject { |c| c == session[:fbid] or session[:friends].include? c }
-      .each_slice(50) do |classmate_slice|
-        mutuals = session[:api].batch do |batch_api|
-          classmate_slice.each { |c| batch_api.get_connections("me", "mutualfriends/#{c}") }
+    classmates.map { |c| { id: c.fbid, section: c.section } }
+      .reject { |c| c[:id] == session[:fbid] or session[:friends].include? c[:id] }
+        .each_slice(50) do |classmate_slice|
+          mutuals = session[:api].batch do |batch_api|
+            classmate_slice.each { |c| batch_api.get_connections("me", "mutualfriends/#{c[:id]}") }
+          end
+          mutuals.map!(&:size)
+          mutual_counts += classmate_slice.each_with_index
+            .map { |c, i| c[:num_mutuals] = mutuals[i]; c }
         end
-        counts = Hash[classmate_slice.zip mutuals.map(&:size)]
-        mutual_counts.merge! counts
-      end
 
     # returns json of friend of friend ids in requested course/section sorted by num mutual friends
-    success mutual_counts.sort_by { |k, mutuals| mutuals }.reverse
+    success mutual_counts.sort_by { |c| c[:num_mutuals] }.reverse
   end
 
   # get an image of a user's schedule (must be friends)
