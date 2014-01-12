@@ -7,6 +7,7 @@ set :rack_env, :production
 set :application, "umd-social-scheduler"
 set :user, 'root'
 set :use_sudo, false
+set :deploy_subdir, "backend"
 
 set :scm, 'git'
 set :repository, "git@github.com:akoy93/umd-social-scheduler.git"
