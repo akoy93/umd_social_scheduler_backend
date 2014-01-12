@@ -6,20 +6,15 @@ set :rack_env, :production
 #general info
 set :application, "umd-social-scheduler"
 set :user, 'root'
-set :domain, "www.umdsocialscheduler.com"
 set :use_sudo, false
 
 set :scm, 'git'
 set :repository, "git@github.com:akoy93/umd-social-scheduler.git"
 set :branch, 'master'
 
-role :web, domain                          # Your HTTP server, Apache/etc
-role :app, domain                          # This may be the same as your `Web` server
-role :db,  domain, :primary => true # This is where Rails migrations will run
-
 #deploy config
 set :deploy_to, "/home/umd-social-scheduler"
-set :deploy_via, :remote_cache
+set :deploy_via, :export
 
 #addition settings. mostly ssh
 ssh_options[:forward_agent] = true
