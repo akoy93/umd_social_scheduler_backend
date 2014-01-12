@@ -10,3 +10,6 @@ gem 'dm-serializer', '~> 1.2.2'
 group :development do
   gem 'thin'
 end
+
+gem 'capistrano', '~> 2.15.5'
+gem 'rvm-capistrano', '~> 1.3.3'
