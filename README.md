@@ -23,13 +23,13 @@ Refer to backend/lib/app.rb. UMD Social Scheduler's backend is written in Ruby u
   Submit a POST request to /add_schedule containing "term" and "schedule" parameters. The "schedule" parameter contains the user's class schedule in the form of "course,section|course,section|course,section" i.e. "CMSC433,0101|CMSC451,0101|MATH410,0201". The user's schedule information will then be updated with the information in the POST request.
   
 ####Get Friends in a Class
-  Submit a GET request to /friends/"term"/"course"/"section" i.e. /friends/201401/CMSC412/0101. This call will return a JSON of Facebook ID's of students who are friends with the current user and enrolled in "course", section "section" for the specified "term". The "section" parameter is optional and, if left out, the call will consider all sections of the course.
+  Submit a GET request to /friends with parameters "term", "course", and "section" (optional) i.e. /friends?term=201401&course=CMSC412&section=0101. This call will return a JSON of Facebook ID's of students who are friends with the current user and enrolled in "course", section "section" for the specified "term". The "section" parameter is optional and, if left out, the call will consider all sections of the course.
   
 ####Get Friends of Friends in a Class
-  Similar to getting friends in a class, submit a GET request to /friendsoffriends/"term"/"course"/"section". The returned JSON will return friends of friends of the current user, excluding friends of the current user.
+  Similar to getting friends in a class, submit a GET request to /friendsoffriends with parameters "term", "course", and "section" (optional). The returned JSON will return friends of friends of the current user, excluding friends of the current user.
   
 ####Get a Friend's Schedule Image
-  Submit a GET request to /schedule/"term"/"facebook id" i.e. /schedule/201401/2359273392. This call will return a jpeg image of the user corresponding to the specified Facebook ID only if that user is friends with the current user.
+  Submit a GET request to /schedule with parameters "term" and "fbid" i.e. /schedule?term=201401&fbid=2359273392. This call will return a jpeg image of the user corresponding to the specified Facebook ID only if that user is friends with the current user.
   
 Contact
 -------
