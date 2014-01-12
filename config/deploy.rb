@@ -9,7 +9,7 @@ set :rack_env, :production
 
 #general info
 set :user, 'root'
-set :domain, 'umdsocialscheduler.com'
+set :domain, 'http://173.245.5.162/'
 set :applicationdir, "/home/umd_social_scheduler_backend"
 set :scm, 'git'
 set :application, "umd_social_scheduler_backend"
