@@ -8,4 +8,7 @@ gem 'json'
 gem 'data_mapper'
 gem 'dm-sqlite-adapter'
 gem 'dm-serializer'
-gem 'thin'
+
+group :development do
+  gem 'thin'
+end
