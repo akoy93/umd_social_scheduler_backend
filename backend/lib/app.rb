@@ -29,6 +29,7 @@ class SocialSchedulerController < Sinatra::Application
     redirect REDIRECT
   end
 
+  # Parameters: None
   # facebook server side login
   get '/login' do
     session[:oauth] = Koala::Facebook::OAuth
@@ -36,6 +37,7 @@ class SocialSchedulerController < Sinatra::Application
     redirect session[:oauth].url_for_oauth_code
   end
 
+  # Parameters: None
   # facebook logout
   get '/logout' do
     session.clear
@@ -66,6 +68,7 @@ class SocialSchedulerController < Sinatra::Application
     success({ fbid: session[:fbid], name: profile["name"] })
   end
 
+  # Parameters: term, html
   # accepts html for user's schedule and renders an image
   post '/render_schedule' do
     return error unless error_check params
@@ -89,6 +92,7 @@ class SocialSchedulerController < Sinatra::Application
     success
   end
 
+  # Parameters: None
   # posts a user's schedule to facebook
   get '/post_schedule' do
     return error unless error_check params
@@ -102,6 +106,7 @@ class SocialSchedulerController < Sinatra::Application
     success
   end
 
+  # Parameters: term, schedule
   # saves user's schedule information to a database. expects COURSE,SEC|COURSE,SEC.
   post '/add_schedule' do
     return error unless error_check params
@@ -115,14 +120,19 @@ class SocialSchedulerController < Sinatra::Application
     # parse request parameters and add new course entries
     params[:schedule].split('|').each do |course_data|
       course_entry = CourseEntry.create_entry(session[:fbid], *course_data.split(','))
-      return error unless Term.add(params[:term], course_entry)
+      # delete schedule on error
+      unless Term.add(params[:term], course_entry)
+        Term.delete_user(params[:term], session[:fbid])
+        return error
+      end
     end
 
     success
   end
 
+  # Parameters: term, course, section (optional)
   # get friends in a class
-  get '/friends/:term/:course/?:section?' do
+  get '/friends' do
     return error unless error_check params
     classmates = Term.classmates(params[:term], params[:course], params[:section])
     # return json of friend ids in requested course/section
@@ -131,14 +141,14 @@ class SocialSchedulerController < Sinatra::Application
       .select { |c| session[:friends].include? c[:fbid] }.shuffle
   end
 
+  # Parameters: term, course, section (optional)
   # get friends of friends in a class
-  get '/friendsoffriends/:term/:course/?:section?' do
+  get '/friendsoffriends' do
     return error unless error_check params
     classmates = Term.classmates(params[:term], params[:course], params[:section])
-    mutual_counts = []
-
     success [] if classmates.nil?
 
+    mutual_counts = []
     # filter classmates to potential friends of friends, slice into chunks of 50, invoke
     # facebook batch requests to get mutual friends quickly, merge results into each hash
     # - chained methods to get around readonly restriction of database
@@ -160,13 +170,14 @@ class SocialSchedulerController < Sinatra::Application
     success mutual_counts.sort_by { |c| c[:num_mutuals] }.reverse
   end
 
+  # Parameters: term, fbid
   # get an image of a user's schedule (must be friends)
-  get '/schedule/:term/:user_id' do
+  get '/schedule' do
     return error unless error_check params
-    file_path = jpg_path(params[:term], params[:user_id])
+    file_path = jpg_path(params[:term], params[:fbid])
 
     unless File.exists?(file_path) && 
-      (params[:user_id] == session[:fbid] || session[:friends].include?(params[:user_id]))
+      (params[:fbid] == session[:fbid] || session[:friends].include?(params[:fbid]))
       return error
     end
 
