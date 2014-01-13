@@ -1,9 +1,9 @@
 configure :development do
-  DataMapper.setup(:default, ENV['DATABASE_URL'] || "sqlite3://#{Dir.pwd}/prod.db")
+  DataMapper.setup(:default, ENV['DATABASE_URL'] || "sqlite3://#{File.dirname(File.expand_path(__FILE__))}/prod.db")
 end
 
 configure :production do
-  DataMapper.setup(:default, ENV['DATABASE_URL'] || "postgres://#{Dir.pwd}/prod.db")
+  DataMapper.setup(:default, ENV['DATABASE_URL'] || "postgres://#{File.dirname(File.expand_path(__FILE__))}/prod.db")
 end
 
 class Term
