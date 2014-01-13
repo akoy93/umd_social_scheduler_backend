@@ -1,0 +1,3 @@
+#!/bin/bash
+cat tmp/pids/unicorn.pid | xargs kill -QUIT
+unicorn -c unicorn.rb -E production -D
