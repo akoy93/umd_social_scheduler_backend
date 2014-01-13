@@ -1,44 +1,39 @@
 require 'set'
 
 class SocialSchedulerController < Sinatra::Application
+  # diable rack protection while in development
   configure :development do
     disable :protection
-    # read application data
-    @@app_id, @@app_secret, @@redirect, @@password = 
-      File.readlines("#{settings.root}/app_data.txt").map(&:chomp)
-  end
-
-  configure :production do
-    @@app_id = ENV['APP_ID']
-    @@app_secret = ENV['APP_SECRET']
-    @@redirect = ENV['REDIRECT']
-    @@password = ENV['PASSWORD']
   end
 
   # store directory paths
   set :root, File.expand_path('../../', __FILE__)
   set :schedules, File.expand_path("schedules", settings.root)
 
+  # read application data
+  APP_ID, APP_SECRET, REDIRECT, PASSWORD = 
+    File.readlines("#{settings.root}/app_data.txt").map(&:chomp)
+
   # set up logging
-  #configure do
-  #  file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
-  #  file.sync = true
-  #  use Rack::CommonLogger, file
-  #end
+  configure do
+    file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
+    file.sync = true
+    use Rack::CommonLogger, file
+  end
 
   before do
     content_type :json
   end
 
   get '/' do
-    redirect @@redirect
+    redirect REDIRECT
   end
 
   # Parameters: None
   # facebook server side login
   get '/login' do
     session[:oauth] = Koala::Facebook::OAuth
-      .new(@@app_id, @@app_secret, "#{request.base_url}/callback")
+      .new(APP_ID, APP_SECRET, "#{request.base_url}/callback")
     redirect session[:oauth].url_for_oauth_code
   end
 
@@ -192,17 +187,17 @@ class SocialSchedulerController < Sinatra::Application
   ########### Private API ############
 
   # get the number of users for a term
-  get "/#{@@password}/users/:term" do
+  get "/#{PASSWORD}/users/:term" do
     { count: Term.get(params[:term]).courseEntries.all(unique: true).count }.to_json
   end
 
   # get all course entries for a term
-  get "/#{@@password}/courses/:term" do
+  get "/#{PASSWORD}/courses/:term" do
     Term.get(params[:term]).courseEntries.to_json
   end
 
   # create table and folder for a new term
-  get "/#{@@password}/create/:term" do
+  get "/#{PASSWORD}/create/:term" do
     puts "here"
     if Term.new_term(params[:term])
       `mkdir #{settings.schedules}/#{params[:term]}`
@@ -213,7 +208,7 @@ class SocialSchedulerController < Sinatra::Application
   end
 
   # get a user's schedule
-  get "/#{@@password}/schedule/:term/:fbid" do
+  get "/#{PASSWORD}/schedule/:term/:fbid" do
     Term.get(params[:term]).courseEntries.all({ fbid: params[:fbid] }).to_json
   end
 
