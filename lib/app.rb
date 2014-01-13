@@ -198,7 +198,6 @@ class SocialSchedulerController < Sinatra::Application
 
   # create table and folder for a new term
   get "/#{PASSWORD}/create/:term" do
-    puts "here"
     if Term.new_term(params[:term])
       `mkdir #{settings.schedules}/#{params[:term]}`
       success({msg: "Created!"})
