@@ -29,6 +29,10 @@ class SocialSchedulerController < Sinatra::Application
     redirect REDIRECT
   end
 
+  get '/favicon.ico' do
+    redirect REDIRECT
+  end
+
   # Parameters: None
   # facebook server side login
   get '/login' do
