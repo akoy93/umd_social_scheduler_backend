@@ -20,11 +20,11 @@ class SocialSchedulerController < Sinatra::Application
   set :schedules, File.expand_path("schedules", settings.root)
 
   # set up logging
-  configure do
-    file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
-    file.sync = true
-    use Rack::CommonLogger, file
-  end
+  #configure do
+  #  file = File.new("#{settings.root}/log/#{settings.environment}.log", 'a+')
+  #  file.sync = true
+  #  use Rack::CommonLogger, file
+  #end
 
   before do
     content_type :json
