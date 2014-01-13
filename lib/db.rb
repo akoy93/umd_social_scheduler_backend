@@ -1,4 +1,10 @@
-DataMapper.setup(:default, ENV['DATABASE_URL'] || "postgres://#{Dir.pwd}/dev.db")
+configure :development do
+  DataMapper.setup(:default, ENV['DATABASE_URL'] || "sqlite3://#{Dir.pwd}/prod.db")
+end
+
+configure :production do
+  DataMapper.setup(:default, ENV['DATABASE_URL'] || "postgres://#{Dir.pwd}/prod.db")
+end
 
 class Term
   include DataMapper::Resource
