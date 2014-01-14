@@ -7,7 +7,9 @@ require './lib/app'
 require './lib/db'
 require './lib/helpers'
 
-# store session data for 1 day
-use Rack::Session::Pool, :expire_after => 86400
+require 'rack/session/moneta'
+
+# use redis for persistent session management
+use Rack::Session::Moneta, :store => :Redis
 
 run SocialSchedulerController
