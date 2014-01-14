@@ -2,5 +2,6 @@
 /db_data.txt
 /design.txt
 scratch/
+.bundle/
 *.db
 *.log

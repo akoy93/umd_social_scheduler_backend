@@ -6,6 +6,10 @@ class SocialSchedulerController < Sinatra::Application
     disable :protection
   end
 
+  configure :production do
+    disable :protection
+  end
+
   # store directory paths
   set :root, File.expand_path('../../', __FILE__)
   set :schedules, File.expand_path("schedules", settings.root)

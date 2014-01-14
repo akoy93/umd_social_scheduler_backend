@@ -1,11 +1,17 @@
-DB_USER, DB_PASS = File.readlines("#{settings.root}/db_data.txt").map(&:chomp)
+configure :development do
+  DataMapper.setup(:default, ENV['DATABASE_URL'] || "sqlite3://#{Dir.pwd}/dev.db")
+end
 
-DataMapper.setup(:default,
-  adapter: 'mysql',
-  user: DB_USER,
-  password: DB_PASS,
-  host: 'localhost',
-  database: 'umd_social_scheduler_backend')
+configure :production do
+  DB_USER, DB_PASS = File.readlines("#{settings.root}/db_data.txt").map(&:chomp)
+
+  DataMapper.setup(:default,
+    adapter: 'mysql',
+    user: DB_USER,
+    password: DB_PASS,
+    host: 'localhost',
+    database: 'umd_social_scheduler_backend')
+end
 
 class Term
   include DataMapper::Resource

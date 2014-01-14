@@ -36,6 +36,9 @@ GEM
       json (~> 1.6)
       json_pure (~> 1.6)
       multi_json (~> 1.0)
+    dm-sqlite-adapter (1.2.0)
+      dm-do-adapter (~> 1.2.0)
+      do_sqlite3 (~> 0.10.6)
     dm-timestamps (1.2.0)
       dm-core (~> 1.2.0)
     dm-transactions (1.2.0)
@@ -51,6 +54,8 @@ GEM
     dm-validations (1.2.0)
       dm-core (~> 1.2.0)
     do_mysql (0.10.13)
+      data_objects (= 0.10.13)
+    do_sqlite3 (0.10.13)
       data_objects (= 0.10.13)
     eventmachine (1.0.3)
     faraday (0.8.8)
@@ -86,11 +91,12 @@ PLATFORMS
 
 DEPENDENCIES
   data_mapper (~> 1.2.0)
-  dm-mysql-adapter
+  dm-mysql-adapter (~> 1.2.0)
   dm-serializer (~> 1.2.2)
+  dm-sqlite-adapter (~> 1.2.0)
   json (~> 1.8.1)
   koala (~> 1.6.0)
-  moneta
-  redis
+  moneta (~> 0.7.20)
+  redis (~> 3.0.6)
   sinatra (~> 1.4.4)
-  thin
+  thin (~> 1.6.1)
