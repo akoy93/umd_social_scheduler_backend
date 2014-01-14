@@ -27,6 +27,7 @@ class SocialSchedulerController < Sinatra::Application
 
   before do
     content_type :json
+    response['Access-Control-Allow-Origin'] = '*'
   end
 
   get '/' do
@@ -39,6 +40,21 @@ class SocialSchedulerController < Sinatra::Application
     session[:oauth] = Koala::Facebook::OAuth
       .new(APP_ID, APP_SECRET, "#{request.base_url}/callback")
     redirect session[:oauth].url_for_oauth_code
+  end
+
+  # Parameters: access_token
+  # create session with facebook access token. stores user data in session hash.
+  get '/access' do
+    return error if params[:access_token].nil? or params[:access_token].empty?
+
+    session[:graph] = Koala::Facebook::API.new(params[:access_token])
+    session[:api] = Koala::Facebook::API.new(params[:access_token])
+    session[:fbid] = session[:graph].get_object("me")["id"]
+    session[:friends] = session[:graph]
+      .get_connections("me", "friends").map { |friend| friend["id"] }.to_set
+
+    return error unless error_check
+    success
   end
 
   # Parameters: None
