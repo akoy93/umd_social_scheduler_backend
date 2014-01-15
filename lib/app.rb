@@ -93,8 +93,7 @@ class SocialSchedulerController < Sinatra::Application
   # accepts html for user's schedule and renders an image
   post '/render_schedule' do
     return error unless error_check params
-    return error if params[:html].size > 10000
-
+    
     # generate html file
     File.open(html_path(params[:term], session[:fbid]), "w+") do |f|
       f.puts "<html><body><center>"
