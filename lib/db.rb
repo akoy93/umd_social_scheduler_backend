@@ -13,68 +13,78 @@ configure :production do
     database: 'umd_social_scheduler_backend')
 end
 
-class Term
+class Course
   include DataMapper::Resource
 
   property :term_code, String, key: true
+  property :course_code, String, key: true
+  property :section, String, key: true
 
   validates_length_of :term_code, is: 6
+  validates_length_of :course_code, minimum: 7, maximum: 8
+  validates_length_of :section, is: 4
 
-  has n, :courseEntries
+  has n :students, through: Resource
 
-  # create new term unless it already exists
-  def self.new_term(term_code)
-    term_code.to_s.upcase!
-    if Term.get(term_code).nil?
-      Term.new({term_code: term_code}).save
-      return true
+  # returns array of hashes with name, fbid, section
+  def self.roster(term_code, course_code, section)
+    term_code = term_code.to_s.upcase
+    course_code = course_code.to_s.upcase
+    section = section.to_s.upcase
+    roster = []
+    if section.nil? or section.empty? # get all sections
+      Courses.all({term_code: term_code, course_code: course_code}).each do |course|
+        roster += course.students.map { |s| {name: s.name, fbid: s.fbid, section: course.section} }
+      end
+    else
+      roster = Course.get(term_code, course_code, section).students.map do |s|
+        {name: s.name, fbid: s.fbid, section: section}
+      end
     end
-    false
+    roster
+  end
+end
+
+class Student
+  include DataMapper::Resource
+
+  property :fbid, String, key: true
+  property :name, String
+
+  validates_length_of :fbid, minimum: 3, maximum: 25
+  validates_length_of :name, minimum: 1, maximum: 100
+
+  has n :courses, through: Resource
+
+  def self.create(fbid, name)
+    student = Student.first_or_create({fbid: fbid, name: name})
+    student.save ? student : nil
   end
 
-  # delete all entires for a user in a particular term
-  def self.delete_user(term_code, fbid)
-    status = true
-    Term.get(term_code.to_s.upcase).courseEntries.all(fbid: fbid.to_s).each do |c|
-      status &&= c.destroy!
+  def delete_schedule(term_code)
+    term_code = term_code.to_s.upcase
+    status = true;
+    student.student_courses.all({term_code: term_code.to_s.upcase}).each do |link|
+      status &&= link.destroy!
     end
     status
   end
 
-  # add a new course entry to a particular term
-  def self.add(term_code, course_entry)
-    term = Term.get(term_code.to_s.upcase)
-    term.courseEntries << course_entry
-    term.save
+  def get_schedule(term_code)
+    term_code = term_code.to_s.upcase
+    this.courses.all({term_code: term_code}).map do |c|
+      {term_code: c.term_code, course_code: c.course_code, section: c.section}
+    end
   end
 
-  # get the class roster for a class and section in a particular term
-  def self.classmates(term_code, course, section)
-    term = Term.get(term_code.to_s.upcase)
-
-    classmates = term.courseEntries.all(course: course.to_s.upcase)
-    classmates = classmates.all(section: section.to_s.upcase) unless section.nil? or section.empty?
-    classmates
-  end
-end
-
-class CourseEntry
-  include DataMapper::Resource
-
-  property :fbid, String, key: true
-  property :course, String, key: true
-  property :section, String
-
-  validates_length_of :fbid, minimum: 3, maximum: 25
-  validates_length_of :course, minimum: 7, maximum: 8
-  validates_length_of :section, is: 4
-
-  belongs_to :term
-
-  # create a new course entry
-  def self.create_entry(fbid, course, section)
-    CourseEntry.new({fbid: fbid.to_s.upcase, course: course.to_s.upcase, 
-      section: section.to_s.upcase})
+  def add_course(term_code, course_code, section)
+    term_code = term_code.to_s.upcase
+    course_code = course_code.to_s.upcase
+    section = section.to_s.upcase
+    course = Course.first_or_create({ term_code: term_code, 
+      course_code: course_code, section: section })
+    course.students << this
+    course.save
   end
 end
 

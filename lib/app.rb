@@ -49,7 +49,9 @@ class SocialSchedulerController < Sinatra::Application
 
     session[:graph] = Koala::Facebook::API.new(params[:access_token])
     session[:api] = Koala::Facebook::API.new(params[:access_token])
-    session[:fbid] = session[:graph].get_object("me")["id"]
+    profile = session[:graph].get_object("me")
+    session[:fbid] = profile["id"]
+    session[:name] = profile["name"]
     session[:friends] = session[:graph]
       .get_connections("me", "friends").map { |friend| friend["id"] }.to_set
 
@@ -80,12 +82,13 @@ class SocialSchedulerController < Sinatra::Application
     # user information
     profile = session[:graph].get_object("me")
     session[:fbid] = profile["id"]
+    session[:name] = profile["name"]
 
     # store user's friends in session hash
     session[:friends] = session[:graph]
       .get_connections("me", "friends").map { |friend| friend["id"] }.to_set
 
-    success({ fbid: session[:fbid], name: profile["name"] })
+    success({ fbid: session[:fbid], name: session[:name] })
   end
 
   # Parameters: term, html
@@ -134,15 +137,18 @@ class SocialSchedulerController < Sinatra::Application
     # too many classes
     return error if params[:schedule].split('|').size > 15
 
+    # fetch current user
+    student = Student.create(session[:fbid], session[:name])
+    return error if student.nil?
+
     # remove existing course entries
-    Term.delete_user(params[:term], session[:fbid])
+    return error unless student.delete_schedule(params[:term])
 
     # parse request parameters and add new course entries
     params[:schedule].split('|').each do |course_data|
-      course_entry = CourseEntry.create_entry(session[:fbid], *course_data.split(','))
       # delete schedule on error
-      unless Term.add(params[:term], course_entry)
-        Term.delete_user(params[:term], session[:fbid])
+      unless student.add_course(params[:term], *course_data.split(','))
+        student.delete_schedule(params[:term])
         return error
       end
     end
@@ -154,45 +160,54 @@ class SocialSchedulerController < Sinatra::Application
   # get friends in a class
   get '/friends' do
     return error unless error_check params
-    classmates = Term.classmates(params[:term], params[:course], params[:section])
-    # return json of friend ids in requested course/section
-    success [] if classmates.nil?
-    success classmates.map { |c| { fbid: c.fbid, section: c.section } }
-      .select { |c| session[:friends].include? c[:fbid] }.shuffle
+    roster = Course.roster(params[:term], params[:course], params[:section])
+    # return json of friend ids, names, and sections in requested course/section
+    success [] if roster.nil?
+    success roster.select { |c| session[:friends].include? c[:fbid] }.sort_by { |c| c[:section] }
   end
 
   # Parameters: term, course, section (optional)
   # get friends of friends in a class
   get '/friendsoffriends' do
     return error unless error_check params
-    classmates = Term.classmates(params[:term], params[:course], params[:section])
-    success [] if classmates.nil?
+    roster = Course.roster(params[:term], params[:course], params[:section])
+    success [] if roster.nil?
 
     mutual_counts = []
     # filter classmates to potential friends of friends, slice into chunks of 50, invoke
     # facebook batch requests to get mutual friends quickly, merge results into each hash
     # - chained methods to get around readonly restriction of database
     # - slice classmates into chunks of 50 to comply with facebook batch limits
-    classmates.map { |c| { fbid: c.fbid, section: c.section } }
-      .reject { |c| c[:fbid] == session[:fbid] or session[:friends].include? c[:fbid] }
-        .each_slice(50) do |classmate_slice|
-          mutuals = session[:api].batch do |batch_api|
-            classmate_slice.each do |c| 
-              batch_api.get_connections("me", "mutualfriends/#{c[:fbid]}")
-            end
+    roster.reject { |c| c[:fbid] == session[:fbid] or session[:friends].include? c[:fbid] }
+      .each_slice(50) do |roster_slice|
+        mutuals = session[:api].batch do |batch_api|
+          roster_slice.each do |c| 
+            batch_api.get_connections("me", "mutualfriends/#{c[:fbid]}")
           end
-          mutuals.map!(&:size)
-          mutual_counts += classmate_slice.each_with_index
-            .map { |c, i| c[:num_mutuals] = mutuals[i]; c }
         end
+        mutuals.map!(&:size)
+        mutual_counts += roster_slice.each_with_index
+          .map { |c, i| c[:num_mutuals] = mutuals[i]; c }
+      end
 
-    # returns json of friend of friend ids in requested course/section sorted by num mutual friends
+    # returns json of friend of friend ids, names, and sections in requested course/section sorted
+    # by num mutual friends
     success mutual_counts.sort_by { |c| c[:num_mutuals] }.reverse
   end
 
   # Parameters: term, fbid
-  # get an image of a user's schedule (must be friends)
+  # return a json of the user's schedule
   get '/schedule' do
+    unless error_check(params) && 
+      (params[:fbid] == session[:fbid] || session[:friends].include?(params[:fbid]))
+      return error
+    end
+    Student.get(params[:fbid]).get_schedule(params[:term])
+  end
+
+  # Parameters: term, fbid
+  # get an image of a user's schedule (must be friends)
+  get '/schedule_image' do
     return error unless error_check params
     file_path = jpg_path(params[:term], params[:fbid])
 
@@ -204,31 +219,24 @@ class SocialSchedulerController < Sinatra::Application
     send_file file_path, type: :jpg
   end
 
-  ########### Private API ############
+  ########### Testing API ############
 
-  # get the number of users for a term
+  # get the number of users
   get "/#{PASSWORD}/users/:term" do
-    { count: Term.get(params[:term]).courseEntries.all(unique: true).count }.to_json
-  end
-
-  # get all course entries for a term
-  get "/#{PASSWORD}/courses/:term" do
-    Term.get(params[:term]).courseEntries.to_json
-  end
-
-  # create table and folder for a new term
-  get "/#{PASSWORD}/create/:term" do
-    if Term.new_term(params[:term])
-      `mkdir #{settings.schedules}/#{params[:term]}`
-      success({msg: "Created!"})
-    else
-      error({msg: "Already exists."})
-    end
+    { count: Student.all().count }.to_json
   end
 
   # get a user's schedule
   get "/#{PASSWORD}/schedule/:term/:fbid" do
-    Term.get(params[:term]).courseEntries.all({ fbid: params[:fbid] }).to_json
+    Student.get(params[:fbid]).get_schedule(params[:term])
+  end
+
+  # get a user's schedule image
+  get "/#{PASSWORD}/schedule_image/:term/:fbid" do
+    file_path = jpg_path(params[:term], params[:fbid])
+    return error unless File.exists? file_path
+
+    send_file file_path, type: :jpg
   end
 
   ########### Error Handling ############
