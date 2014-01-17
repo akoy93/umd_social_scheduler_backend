@@ -24,7 +24,7 @@ class Course
   validates_length_of :course_code, minimum: 7, maximum: 8
   validates_length_of :section, is: 4
 
-  has n :students, through: Resource
+  has n, :students, through: Resource
 
   # returns array of hashes with name, fbid, section
   def self.roster(term_code, course_code, section)
@@ -54,17 +54,17 @@ class Student
   validates_length_of :fbid, minimum: 3, maximum: 25
   validates_length_of :name, minimum: 1, maximum: 100
 
-  has n :courses, through: Resource
+  has n, :courses, through: Resource
 
   def self.create(fbid, name)
-    student = Student.first_or_create({fbid: fbid, name: name})
+    student = Student.first_or_new({fbid: fbid, name: name})
     student.save ? student : nil
   end
 
   def delete_schedule(term_code)
     term_code = term_code.to_s.upcase
     status = true;
-    student.student_courses.all({term_code: term_code.to_s.upcase}).each do |link|
+    self.courses.all({term_code: term_code.to_s.upcase}).each do |link|
       status &&= link.destroy!
     end
     status
@@ -72,7 +72,7 @@ class Student
 
   def get_schedule(term_code)
     term_code = term_code.to_s.upcase
-    this.courses.all({term_code: term_code}).map do |c|
+    self.courses.all({term_code: term_code}).map do |c|
       {term_code: c.term_code, course_code: c.course_code, section: c.section}
     end
   end
@@ -81,9 +81,9 @@ class Student
     term_code = term_code.to_s.upcase
     course_code = course_code.to_s.upcase
     section = section.to_s.upcase
-    course = Course.first_or_create({ term_code: term_code, 
+    course = Course.first_or_new({ term_code: term_code, 
       course_code: course_code, section: section })
-    course.students << this
+    course.students << self
     course.save
   end
 end

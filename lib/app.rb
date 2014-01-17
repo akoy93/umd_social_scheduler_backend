@@ -132,7 +132,7 @@ class SocialSchedulerController < Sinatra::Application
   # Parameters: term, schedule
   # saves user's schedule information to a database. expects COURSE,SEC|COURSE,SEC.
   post '/add_schedule' do
-    return error unless error_check params    
+    return error unless error_check params
 
     # too many classes
     return error if params[:schedule].split('|').size > 15
@@ -202,7 +202,7 @@ class SocialSchedulerController < Sinatra::Application
       (params[:fbid] == session[:fbid] || session[:friends].include?(params[:fbid]))
       return error
     end
-    Student.get(params[:fbid]).get_schedule(params[:term])
+    success Student.get(params[:fbid]).get_schedule(params[:term])
   end
 
   # Parameters: term, fbid
