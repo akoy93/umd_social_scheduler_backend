@@ -253,6 +253,36 @@ class SocialSchedulerController < Sinatra::Application
     success Course.roster(params[:term], params[:course], params[:section])
   end
 
+  # Parameters: fbid, name, term, schedule
+  # saves user's schedule information to a database. expects COURSE,SEC|COURSE,SEC.
+  post "/#{PASSWORD}/add_schedule" do
+    # fetch current user
+    student = Student.create(params[:fbid], params[:name])
+    return error if student.nil?
+
+    # remove existing course entries
+    return error unless student.delete_schedule(params[:term])
+
+    # parse request parameters and add new course entries
+    params[:schedule].split('|').each do |course_data|
+      # delete schedule on error
+      unless student.add_course(params[:term], *course_data.split(','))
+        student.delete_schedule(params[:term])
+        return error
+      end
+    end
+
+    success
+  end
+
+  # Parameters: term, fbid
+  # deletes a user's schedule
+  post "/#{PASSWORD}/delete_schedule" do
+    student = Student.get(params[:fbid])
+    return error unless student.delete_schedule(params[:term])
+    success
+  end
+
   ########### Error Handling ############
 
   error do
