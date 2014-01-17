@@ -33,7 +33,7 @@ class Course
     section = section.to_s.upcase
     roster = []
     if section.nil? or section.empty? # get all sections
-      Courses.all({term_code: term_code, course_code: course_code}).each do |course|
+      Course.all({term_code: term_code, course_code: course_code}).each do |course|
         roster += course.students.map { |s| {name: s.name, fbid: s.fbid, section: course.section} }
       end
     else

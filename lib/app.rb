@@ -221,22 +221,31 @@ class SocialSchedulerController < Sinatra::Application
 
   ########### Testing API ############
 
+  # Parameters: term
   # get the number of users
   get "/#{PASSWORD}/users/:term" do
     { count: Student.all().count }.to_json
   end
 
+  # Parameters: term, fbid
   # get a user's schedule
   get "/#{PASSWORD}/schedule/:term/:fbid" do
-    Student.get(params[:fbid]).get_schedule(params[:term])
+    success Student.get(params[:fbid]).get_schedule(params[:term])
   end
 
+  # Parameters: term, fbid
   # get a user's schedule image
   get "/#{PASSWORD}/schedule_image/:term/:fbid" do
     file_path = jpg_path(params[:term], params[:fbid])
     return error unless File.exists? file_path
 
     send_file file_path, type: :jpg
+  end
+
+  # Parameters: term, course, section (optional)
+  # get a class roster
+  get "/#{PASSWORD}/roster/:term/:course?/:section?" do
+    success Course.roster(params[:term], params[:course], params[:section])
   end
 
   ########### Error Handling ############
