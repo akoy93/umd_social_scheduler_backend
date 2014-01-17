@@ -28,6 +28,7 @@ class SocialSchedulerController < Sinatra::Application
   before do
     content_type :json
     response['Access-Control-Allow-Origin'] = '*'
+    session[:init] = true # so session is loaded
   end
 
   get '/' do
@@ -95,8 +96,7 @@ class SocialSchedulerController < Sinatra::Application
   # accepts html for user's schedule and renders an image
   post '/render_schedule' do
     return error unless error_check params
-    return error if params[:html].size > 10000
-
+    
     # generate html file
     File.open(html_path(params[:term], session[:fbid]), "w+") do |f|
       f.puts "<html><body><center>"
@@ -132,7 +132,7 @@ class SocialSchedulerController < Sinatra::Application
   # Parameters: term, schedule
   # saves user's schedule information to a database. expects COURSE,SEC|COURSE,SEC.
   post '/add_schedule' do
-    return error unless error_check params
+    return error unless error_check params    
 
     # too many classes
     return error if params[:schedule].split('|').size > 15
