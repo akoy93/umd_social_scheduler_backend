@@ -35,6 +35,11 @@ class SocialSchedulerController < Sinatra::Application
     redirect REDIRECT
   end
 
+  # Route for caller to determine if the server is online
+  get '/alive' do
+    success
+  end
+
   # Parameters: None
   # facebook server side login
   get '/login' do
