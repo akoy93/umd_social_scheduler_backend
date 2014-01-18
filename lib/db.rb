@@ -60,7 +60,9 @@ class Student
   has n, :courses, through: Resource
 
   def self.new_student(fbid, name, share = true)
-    student = Student.first_or_new({fbid: fbid, name: name, share: share})
+    student = Student.get(fbid)
+    return student unless student.nil?
+    student = Student.new({fbid: fbid, name: name, share: share})
     student.save! ? student : nil
   end
 

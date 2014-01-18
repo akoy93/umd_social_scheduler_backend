@@ -22,4 +22,8 @@ helpers do
   def html_path(term, id)
     File.expand_path("#{term}/#{id}.html", settings.schedules)
   end
+
+  def no_image_path
+    File.expand_path("not_available.jpg", settings.schedules)
+  end
 end

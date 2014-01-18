@@ -234,9 +234,16 @@ class SocialSchedulerController < Sinatra::Application
     return error unless error_check params
     file_path = jpg_path(params[:term], params[:fbid])
 
+    # enforce friends condition
     unless File.exists?(file_path) && 
       (params[:fbid] == session[:fbid] || session[:friends].include?(params[:fbid]))
-      return error
+      send_file no_image_path, type: :jpg
+    end
+
+    # enforce share condition
+    student = Student.get(params[:fbid])
+    unless !student.nil? && student.share
+      send_file no_image_path, type: :jpg
     end
 
     send_file file_path, type: :jpg
