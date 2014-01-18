@@ -66,6 +66,24 @@ class SocialSchedulerController < Sinatra::Application
   end
 
   # Parameters: None
+  # enables sharing for the current suer
+  get '/enable_sharing' do
+    return error unless error_check
+    return error if (student = Student.get(session[:fbid])).nil?
+    student.enable_sharing
+    success
+  end
+
+  # Parameters: None
+  # disables sharing for the current user
+  get '/disable_sharing' do
+    return error unless error_check
+    return error if (student = Student.get(session[:fbid])).nil?
+    student.disable_sharing
+    success
+  end
+
+  # Parameters: None
   # facebook logout
   get '/logout' do
     session.clear
@@ -143,7 +161,7 @@ class SocialSchedulerController < Sinatra::Application
     return error if params[:schedule].split('|').size > 15
 
     # fetch current user
-    student = Student.create(session[:fbid], session[:name])
+    student = Student.new_student(session[:fbid], session[:name])
     return error if student.nil?
 
     # remove existing course entries
@@ -257,7 +275,7 @@ class SocialSchedulerController < Sinatra::Application
   # saves user's schedule information to a database. expects COURSE,SEC|COURSE,SEC.
   post "/#{PASSWORD}/add_schedule" do
     # fetch current user
-    student = Student.create(params[:fbid], params[:name])
+    student = Student.new_student(params[:fbid], params[:name])
     return error if student.nil?
 
     # remove existing course entries

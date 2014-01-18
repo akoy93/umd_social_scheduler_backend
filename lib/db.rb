@@ -34,11 +34,12 @@ class Course
     roster = []
     if section.nil? or section.empty? # get all sections
       Course.all({term_code: term_code, course_code: course_code}).each do |course|
-        roster += course.students.map { |s| {name: s.name, fbid: s.fbid, section: course.section} }
+        roster += course.students.map { |s| {name: s.name, fbid: s.fbid, 
+          section: course.section, share: s.share} }
       end
     else
       roster = Course.get(term_code, course_code, section).students.map do |s|
-        {name: s.name, fbid: s.fbid, section: section}
+        {name: s.name, fbid: s.fbid, section: section, share: s.share}
       end
     end
     roster
@@ -50,21 +51,39 @@ class Student
 
   property :fbid, String, key: true
   property :name, String
+  property :share, Boolean
 
+  validates_presence_of :share
   validates_length_of :fbid, minimum: 3, maximum: 25
   validates_length_of :name, minimum: 1, maximum: 100
 
   has n, :courses, through: Resource
 
-  def self.create(fbid, name)
-    student = Student.first_or_new({fbid: fbid, name: name})
-    student.save ? student : nil
+  def self.new_student(fbid, name, share = true)
+    student = Student.first_or_new({fbid: fbid, name: name, share: share})
+    student.save! ? student : nil
+  end
+
+  def enable_sharing
+    return true if share
+    old_fbid = fbid
+    old_name = name
+    destroy!
+    return !Student.new_student(old_fbid, old_name).nil?
+  end
+
+  def disable_sharing
+    return true unless share
+    old_fbid = fbid
+    old_name = name
+    destroy!
+    return !Student.new_student(old_fbid, old_name, false).nil?
   end
 
   def delete_schedule(term_code)
     term_code = term_code.to_s.upcase
     status = true;
-    self.courses.all({term_code: term_code.to_s.upcase}).each do |link|
+    courses.all({term_code: term_code.to_s.upcase}).each do |link|
       status &&= link.destroy!
     end
     status
