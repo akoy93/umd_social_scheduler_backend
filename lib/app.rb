@@ -308,6 +308,22 @@ class SocialSchedulerController < Sinatra::Application
     success
   end
 
+  # Parameters: fbid
+  # enables sharing for the current suer
+  get "/#{PASSWORD}/enable_sharing" do
+    return error if (student = Student.get(params[:fbid])).nil?
+    student.enable_sharing
+    success
+  end
+
+  # Parameters: fbid
+  # disables sharing for the current user
+  get "/#{PASSWORD}/disable_sharing" do
+    return error if (student = Student.get(params[:fbid])).nil?
+    student.disable_sharing
+    success
+  end
+
   ########### Error Handling ############
 
   error do
