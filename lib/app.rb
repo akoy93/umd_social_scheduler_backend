@@ -62,11 +62,11 @@ class SocialSchedulerController < Sinatra::Application
       .get_connections("me", "friends").map { |friend| friend["id"] }.to_set
 
     return error unless error_check
-    success
+    success({share: ((student = Student.get(session[:fbid])).nil? ? true : student.share)})
   end
 
   # Parameters: None
-  # enables sharing for the current suer
+  # enables sharing for the current user
   get '/enable_sharing' do
     return error unless error_check
     return error if (student = Student.get(session[:fbid])).nil?
