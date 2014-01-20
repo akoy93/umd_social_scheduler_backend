@@ -38,6 +38,8 @@ class Course
           section: course.section, share: s.share} }
       end
     else
+      course = Course.get(term_code, course_code, section)
+      return [] if course.nil?
       roster = Course.get(term_code, course_code, section).students.map do |s|
         {name: s.name, fbid: s.fbid, section: section, share: s.share}
       end
