@@ -15,7 +15,7 @@ class SocialSchedulerController < Sinatra::Application
   set :schedules, File.expand_path("schedules", settings.root)
 
   # read application data
-  APP_ID, APP_SECRET, REDIRECT, PASSWORD = 
+  APP_ID, APP_SECRET, REDIRECT, PASSWORD, AWS_KEY, AWS_SECRET, ASSOCIATE_TAG = 
     File.readlines("#{settings.root}/app_data.txt").map(&:chomp)
 
   # set up logging
@@ -247,6 +247,56 @@ class SocialSchedulerController < Sinatra::Application
     end
 
     send_file file_path, type: :jpg
+  end
+
+  # Parameters: isbns (separated by '|')
+  # use amazon product advertising api to generate affiliate links from isbns
+  get '/affiliate_link' do
+    return error unless error_check
+    return error if params[:isbns].nil? or params[:isbns].empty?
+
+    req = Vacuum.new
+    req.configure(
+      aws_access_key_id: AWS_KEY,
+      aws_secret_access_key: AWS_SECRET,
+      associate_tag: ASSOCIATE_TAG
+    )
+
+    asins = []
+    threads = []
+
+    # get asin number for each isbn number and cache data
+    params[:isbns].split('|').uniq.each do |isbn|
+      threads << Thread.new do # use threads to execute requests concurrently
+        amazonParams = { 
+          'Operation' => 'ItemLookup',
+          'Keywords' => isbn,
+          'ItemId' => isbn,
+          'IdType' => 'ISBN',
+          'SearchIndex' => 'All'
+        }
+
+        # look up asin for isbn and cache results
+        if ISBN.get(isbn).nil?
+          data = req.item_search(amazonParams).to_h
+          if data["ItemSearchResponse"] && data["ItemSearchResponse"]["Items"] \
+            && data["ItemSearchResponse"]["Items"]["Item"]
+            item = data["ItemSearchResponse"]["Items"]["Item"]
+            if item.class == Hash
+              asin = item["ASIN"]
+            elsif item.class == Array
+              asin = item.first["ASIN"]
+            end
+            ISBN.create({isbn: isbn, asin: asin.to_s})
+          end
+        end
+        asins << { isbn: isbn, asin: ((entry = ISBN.get(isbn)).nil? ? nil : entry.asin) }
+      end
+    end
+
+    threads.each(&:join) # wait for all threads to finish
+
+    success asins
   end
 
   ########### Testing API ############

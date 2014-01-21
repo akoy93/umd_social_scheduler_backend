@@ -111,4 +111,15 @@ class Student
   end
 end
 
+# ISBN to ASIN mapping
+class ISBN
+  include DataMapper::Resource
+
+  property :isbn, String, key: true
+  property :asin, String
+
+  validates_length_of :isbn, is: 13
+  validates_length_of :asin, is: 10
+end
+
 DataMapper.finalize.auto_upgrade!

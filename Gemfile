@@ -7,6 +7,7 @@ gem 'data_mapper', '~> 1.2.0'
 gem 'dm-serializer', '~> 1.2.2'
 gem 'moneta', '~> 0.7.20'
 gem 'redis', '~> 3.0.6'
+gem 'vacuum'
 
 group :production do
   gem 'dm-mysql-adapter', '~> 1.2.0'
