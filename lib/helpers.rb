@@ -1,7 +1,7 @@
 helpers do
   def error_check(params = {captures: []})
     valid_pre_login = !(session.nil? or session[:oauth].nil?)
-    valid_post_login = !(session.nil? or session[:fbid].nil? \
+    valid_post_login = !(session.nil? or session[:fbid].nil? or session[:name].nil? \
       or session[:friends].nil? or session[:graph].nil? or session[:api].nil?)
     return false unless valid_pre_login or valid_post_login
     true

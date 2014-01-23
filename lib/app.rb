@@ -215,6 +215,7 @@ class SocialSchedulerController < Sinatra::Application
 
     # returns json of friend of friend ids, names, and sections in requested course/section sorted
     # by num mutual friends
+    mutual_counts.select! { |c| c[:num_mutuals] > 5 }
     success mutual_counts.sort_by { |c| c[:num_mutuals] }.reverse
   end
 
