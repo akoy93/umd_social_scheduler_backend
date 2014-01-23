@@ -143,6 +143,10 @@ class SocialSchedulerController < Sinatra::Application
   get '/post_schedule' do
     return error unless error_check params
     return error if session[:schedule_img].nil?
+    permissions = session[:graph].get_connections('me', 'permissions')
+
+    # check permission to post to wall
+    return error unless permissions[0]['publish_actions'].to_i == 1
 
     # post schedule image to facebook
     session[:graph].put_picture(session[:schedule_img], 
@@ -251,9 +255,8 @@ class SocialSchedulerController < Sinatra::Application
   end
 
   # Parameters: isbns (separated by '|')
-  # use amazon product advertising api to generate affiliate links from isbns
-  get '/affiliate_link' do
-    return error unless error_check
+  # use amazon product advertising api to convert isbns to asins
+  get '/get_asin' do
     return error if params[:isbns].nil? or params[:isbns].empty?
 
     req = Vacuum.new

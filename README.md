@@ -7,11 +7,18 @@ API (backend)
 -------------
 Refer to backend/lib/app.rb. UMD Social Scheduler's backend is written in Ruby using the Sinatra gem.
 
-####Facebook Login
-  Submit a GET request to /login. This will use Facebook's server side login process. Once logged in, a session will be created. Note: the API calls below require that a Facebook user is logged in.
-  
+####Facebook Login (Note: the API calls below require that a Facebook user is logged in.)
+  Submit a GET request to /login. This will use Facebook's server side login process. Once logged in, a session will be created.
+  Alternatively, submit a GET request to /access containing an "access_token" parameter with the user's Facebook access token. This will also create a session for the user.
+
 ####Facebook Logout
   Submit a GET request to /logout. This will clear the session.
+
+####Enable Schedule Image Sharing
+  Submit a GET request to /enable_sharing. This will allow the current user's schedule image to be viewable by friends.
+  
+####Disable Schedule Image Sharing
+  Sugmit a GET request to /disable_sharing. This will make the current user's schedule image inaccessible to everyone.
   
 ####Render Schedule JPEG
   Submit a POST request to /render_schedule containing "term" and "html" parameters. The "term" parameter corresponds to the six digit term code that the University of Maryland uses to denote semesters, and the "html" parameter should contain the html of the schedule to be rendered. Once the request is received and validated, the html will be rendered into a jpeg image.
@@ -27,9 +34,12 @@ Refer to backend/lib/app.rb. UMD Social Scheduler's backend is written in Ruby u
   
 ####Get Friends of Friends in a Class
   Similar to getting friends in a class, submit a GET request to /friendsoffriends with parameters "term", "course", and "section" (optional). The returned JSON will return friends of friends of the current user, excluding friends of the current user.
+
+####Get a Friend's Schedule
+  Submit a GET request to /schedule with parameters "term" and "fbid" i.e. /schedule?term=201401&fbid=2359273392. This will return a JSON of the requested user's schedule. This request will fail unless the current user is friends with the requested user.
   
 ####Get a Friend's Schedule Image
-  Submit a GET request to /schedule with parameters "term" and "fbid" i.e. /schedule?term=201401&fbid=2359273392. This call will return a jpeg image of the user corresponding to the specified Facebook ID only if that user is friends with the current user.
+  Submit a GET request to /schedule\_image with parameters "term" and "fbid" i.e. /schedule\_image?term=201401&fbid=2359273392. This call will return a jpeg image of the user corresponding to the specified Facebook ID only if that user is friends with the current user and schedule image sharing has been enabled. 
   
 Contact
 -------

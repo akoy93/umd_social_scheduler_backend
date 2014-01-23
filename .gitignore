@@ -2,6 +2,8 @@
 /db_data.txt
 /design.txt
 /clear_logs
+/backup
+/umd_social_scheduler.*
 scratch/
 .bundle/
 *.db
