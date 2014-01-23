@@ -24,7 +24,7 @@ class Course
   validates_length_of :course_code, minimum: 7, maximum: 8
   validates_length_of :section, is: 4
 
-  has n, :students, through: Resource
+  has n, :students, through: Resource, constraint: :destroy
 
   # returns array of hashes with name, fbid, section
   def self.roster(term_code, course_code, section)
@@ -59,7 +59,7 @@ class Student
   validates_length_of :fbid, minimum: 3, maximum: 25
   validates_length_of :name, minimum: 1, maximum: 100
 
-  has n, :courses, through: Resource
+  has n, :courses, through: Resource, constraint: :destroy
 
   def self.new_student(fbid, name, share = true)
     student = Student.get(fbid)
@@ -87,8 +87,8 @@ class Student
   def delete_schedule(term_code)
     term_code = term_code.to_s.upcase
     status = true;
-    courses.all({term_code: term_code.to_s.upcase}).each do |link|
-      status &&= link.destroy!
+    course_students.all({course_term_code: term_code.to_s.upcase}).each do |l|
+      status &&= l.destroy!
     end
     status
   end

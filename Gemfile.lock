@@ -98,6 +98,7 @@ PLATFORMS
 
 DEPENDENCIES
   data_mapper (~> 1.2.0)
+  dm-constraints (~> 1.2.0)
   dm-mysql-adapter (~> 1.2.0)
   dm-serializer (~> 1.2.2)
   dm-sqlite-adapter (~> 1.2.0)

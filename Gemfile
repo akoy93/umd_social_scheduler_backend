@@ -10,6 +10,7 @@ gem 'redis', '~> 3.0.6'
 gem 'vacuum'
 
 group :production do
+  gem 'dm-constraints', '~> 1.2.0'
   gem 'dm-mysql-adapter', '~> 1.2.0'
 end
 
