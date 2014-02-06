@@ -115,6 +115,16 @@ class SocialSchedulerController < Sinatra::Application
     success({ fbid: session[:fbid], name: session[:name] })
   end
 
+  # Parameters: None
+  # returns a list of friends who have installed umd social scheduler
+  get '/friends_with_app' do
+    return error unless error_check
+
+    friends = Student.all.select { |s| session[:friends].include? s.fbid }
+
+    success friends
+  end
+
   # Parameters: term, html
   # accepts html for user's schedule and renders an image
   post '/render_schedule' do
