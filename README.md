@@ -8,11 +8,15 @@ API (backend)
 Refer to backend/lib/app.rb. UMD Social Scheduler's backend is written in Ruby using the Sinatra gem.
 
 ####Facebook Login (Note: the API calls below require that a Facebook user is logged in.)
-  Submit a GET request to /login. This will use Facebook's server side login process. Once logged in, a session will be created.
+  Submit a GET request to /login. This will use Facebook's server side login process. Once logged in, a session will be created. ***(This option is currently disabled)***
+  
   Alternatively, submit a GET request to /access containing an "access_token" parameter with the user's Facebook access token. This will also create a session for the user.
 
 ####Facebook Logout
   Submit a GET request to /logout. This will clear the session.
+
+####Get List of Friends Using UMD Social Scheduler
+  Submit a GET request to /friends_with_app. This will return a JSON containing a list of friends using UMD Social Scheduler. The JSON includes "fbid" (Facebook User ID), "name", and "share" (boolean indicating whether user has enabled sharing) properties for each friend.
 
 ####Enable Schedule Image Sharing
   Submit a GET request to /enable_sharing. This will allow the current user's schedule image to be viewable by friends.
